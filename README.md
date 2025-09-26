@@ -1,150 +1,165 @@
-# 2nd-Brain-Auto (Ver. KOR) 🧠
+# 2nd-Brain-Auto (Ver. ENG) 🧠
 
-AI 기반 지식 관리 시스템으로 Obsidian과 n8n을 통합한 P.A.R.A 방법론 기반의 두 번째 뇌 시스템입니다.
+AI-powered knowledge management system integrating Obsidian and n8n with P.A.R.A methodology-based second brain system for enhanced productivity and intelligent content organization.
 
-## 🌟 주요 기능
+## 🌟 Key Features
 
-### 🤖 AI 기반 자동화
-- **P.A.R.A 분류**: AI가 콘텐츠를 자동으로 Projects, Areas, Resources, Archives로 분류
-- **스마트 태깅**: AI가 생성한 지능형 태그로 콘텐츠 자동 태깅
-- **콘텐츠 분석**: 감정 분석, 복잡도 평가, 핵심 개념 추출
-- **다중 AI 제공자**: Claude, OpenAI, Perplexity 지원
+### 🤖 AI-Powered Automation
 
-### 🔄 하이브리드 시스템
-- **MECE 원칙**: 상호 배타적이고 완전 포괄적인 분류 체계
-- **스마트 라우팅**: 입력 유형에 따른 자동 처리 경로 결정
-- **실시간 동기화**: Obsidian, Notion, 기타 플랫폼과의 실시간 동기화
+- **P.A.R.A Classification**: AI automatically classifies content into Projects, Areas, Resources, Archives
+- **Smart Tagging**: Automatic content tagging with AI-generated intelligent tags
+- **Content Analysis**: Sentiment analysis, complexity assessment, core concept extraction
+- **Multi-AI Providers**: Claude, OpenAI, Perplexity support
 
-### 📊 고급 기능
-- **성능 모니터링**: 실시간 시스템 상태 및 성능 모니터링
-- **백업 및 복원**: 자동 백업 및 데이터 복원 시스템
-- **분석 대시보드**: 사용 패턴 및 생산성 분석
+### 🔄 Hybrid System
 
-## 🚀 빠른 시작
+- **MECE Principle**: Mutually Exclusive and Collectively Exhaustive classification system
+- **Smart Routing**: Automatic processing path determination based on input type
+- **Real-time Sync**: Real-time synchronization with Obsidian, Notion, and other platforms
 
-### 1. 저장소 클론
+### 📊 Advanced Features
+
+- **Performance Monitoring**: Real-time system status and performance monitoring
+- **Backup & Restore**: Automatic backup and data recovery system
+- **Analytics Dashboard**: Usage patterns and productivity analysis
+
+## 🚀 Quick Start
+
+### 1. Clone Repository
+
 ```bash
-git clone https://github.com/cheska1025/2nd-Brain-Auto-KOR.git
-cd 2nd-Brain-Auto-KOR
+git clone https://github.com/cheska1025/2nd-Brain-Auto-ENG.git
+cd 2nd-Brain-Auto-ENG
 ```
 
-### 2. 환경 설정
+### 2. Environment Setup
+
 ```bash
-# 환경 변수 파일 생성
+# Create environment variables file
 cp env.example .env
 
-# 환경 변수 편집 (API 키 설정)
+# Edit environment variables (API key setup)
 nano .env
 ```
 
-### 3. 의존성 설치
+### 3. Install Dependencies
+
 ```bash
-# Node.js 의존성
+# Node.js dependencies
 npm install
 
-# Python 의존성
+# Python dependencies
 cd ai-service
 pip install -r requirements.txt
 cd ..
 ```
 
-### 4. 시스템 시작
+### 4. Start System
+
 ```bash
-# 개발 환경
+# Development environment
 npm run dev
 
-# 프로덕션 환경
+# Production environment
 npm run prod
 ```
 
-## 📁 프로젝트 구조
+## 📁 Project Structure
 
-```
-2nd-Brain-Auto-KOR/
-├── ai-service/                 # AI 서비스 (Python)
-│   ├── main.py                # FastAPI 메인 애플리케이션
-│   ├── database.py            # 데이터베이스 관리
-│   ├── db_utils.py            # 데이터베이스 유틸리티
-│   └── requirements.txt       # Python 의존성
-├── hybrid-system/             # 하이브리드 시스템 (Node.js)
-│   ├── main.js               # 메인 애플리케이션
-│   ├── core/                 # 핵심 모듈
+```text
+2nd-Brain-Auto (Ver. ENG)/
+├── ai-service/                 # AI Service (Python)
+│   ├── main.py                # FastAPI main application
+│   ├── database.py            # Database management
+│   ├── db_utils.py            # Database utilities
+│   └── requirements.txt       # Python dependencies
+├── hybrid-system/             # Hybrid System (Node.js)
+│   ├── main.js               # Main application
+│   ├── core/                 # Core modules
 │   │   ├── mece-classifier.js
 │   │   ├── ai-hub.js
 │   │   └── sync-manager.js
-│   └── interfaces/           # 사용자 인터페이스
-├── scripts/                   # 유틸리티 스크립트
-│   ├── health-check.js       # 시스템 상태 체크
-│   ├── backup-system.js      # 백업 시스템
-│   └── obsidian-analyzer.js  # Obsidian 분석
-├── templates/                 # AI 강화 템플릿
-├── docker-compose.yml        # Docker 설정
-└── README.md                 # 이 파일
+│   └── interfaces/           # User interfaces
+├── scripts/                   # Utility scripts
+│   ├── health-check.js       # System status check
+│   ├── backup-system.js      # Backup system
+│   └── obsidian-analyzer.js  # Obsidian analysis
+├── templates/                 # AI-enhanced templates
+├── docker-compose.yml        # Docker configuration
+└── README.md                 # This file
 ```
 
-## 🔧 설정
+## 🔧 Configuration
 
-### 환경 변수 (.env)
+### Environment Variables (.env)
+
 ```env
-# AI 서비스 설정
+# AI Service Settings
 OPENAI_API_KEY=your_openai_key
 ANTHROPIC_API_KEY=your_anthropic_key
 PERPLEXITY_API_KEY=your_perplexity_key
 
-# 데이터베이스 설정
+# Database Settings
 DATABASE_URL=postgresql://user:password@localhost:5432/n8n
 REDIS_URL=redis://localhost:6379
 
-# Obsidian 설정
+# Obsidian Settings
 OBSIDIAN_VAULT_PATH=/path/to/your/vault
 
-# n8n 설정
+# n8n Settings
 N8N_URL=http://localhost:5678
 ```
 
-### AI 서비스 설정
+### AI Service Setup
+
 ```bash
 cd ai-service
 python main.py
 ```
 
-### 하이브리드 시스템 설정
+### Hybrid System Setup
+
 ```bash
 cd hybrid-system
 npm start
 ```
 
-## 📊 사용법
+## 📊 Usage
 
-### 1. 웹 대시보드
-- 브라우저에서 `http://localhost:3000` 접속
-- 실시간 시스템 상태 및 분석 데이터 확인
+### 1. Web Dashboard
 
-### 2. API 사용
+- Access `http://localhost:3000` in your browser
+- View real-time system status and analytics data
+
+### 2. API Usage
+
 ```bash
-# 콘텐츠 분류
+# Content classification
 curl -X POST http://localhost:8000/api/classify \
   -H "Content-Type: application/json" \
-  -d '{"content": "프로젝트 계획서 작성", "context": {}}'
+  -d '{"content": "Project planning document creation", "context": {}}'
 
-# 스마트 태깅
+# Smart tagging
 curl -X POST http://localhost:8000/api/tag \
   -H "Content-Type: application/json" \
-  -d '{"content": "머신러닝 기초 학습", "title": "ML 가이드"}'
+  -d '{"content": "Machine learning basics study", "title": "ML Guide"}'
 ```
 
-### 3. n8n 워크플로우
-- `http://localhost:5678`에서 n8n 인터페이스 접속
-- 자동화 워크플로우 설정 및 관리
+### 3. n8n Workflows
 
-## 🧪 테스트
+- Access n8n interface at `http://localhost:5678`
+- Configure and manage automation workflows
 
-### 간단한 테스트
+## 🧪 Testing
+
+### Simple Test
+
 ```bash
 node test-simple.js
 ```
 
-### 전체 테스트
+### Full Test Suite
+
 ```bash
 # Windows
 test-scripts.bat
@@ -153,59 +168,67 @@ test-scripts.bat
 ./test-scripts.sh
 ```
 
-### 헬스 체크
+### Health Check
+
 ```bash
 node scripts/health-check.js
 ```
 
-## 📈 성능 최적화
+## 📈 Performance Optimization
 
-### 1. AI 모델 최적화
+### 1. AI Model Optimization
+
 ```bash
 node scripts/optimize-ai-models.js
 ```
 
-### 2. 데이터베이스 최적화
+### 2. Database Optimization
+
 ```bash
-# PostgreSQL 튜닝
+# PostgreSQL tuning
 node scripts/database-optimize.js
 ```
 
-### 3. 캐싱 설정
-- Redis 캐싱 활성화
-- AI 응답 캐싱
-- 분류 결과 캐싱
+### 3. Caching Setup
 
-## 🔒 보안
+- Enable Redis caching
+- AI response caching
+- Classification result caching
 
-### 1. API 키 보안
-- 환경 변수 사용
-- `.env` 파일을 `.gitignore`에 추가
-- API 키 로테이션
+## 🔒 Security
 
-### 2. 데이터 보안
-- 데이터베이스 암호화
-- 백업 암호화
-- 접근 권한 관리
+### 1. API Key Security
 
-## 🐛 문제 해결
+- Use environment variables
+- Add `.env` file to `.gitignore`
+- API key rotation
 
-### 일반적인 문제
-1. **Redis 연결 오류**: Redis 서버가 실행 중인지 확인
-2. **PostgreSQL 연결 오류**: 데이터베이스 서버 상태 확인
-3. **AI API 오류**: API 키 유효성 및 할당량 확인
+### 2. Data Security
 
-### 로그 확인
+- Database encryption
+- Backup encryption
+- Access permission management
+
+## 🐛 Troubleshooting
+
+### Common Issues
+
+1. **Redis Connection Error**: Check if Redis server is running
+2. **PostgreSQL Connection Error**: Check database server status
+3. **AI API Error**: Verify API key validity and quota
+
+### Log Checking
+
 ```bash
-# 전체 로그
+# All logs
 npm run logs
 
-# 특정 서비스 로그
+# Specific service logs
 npm run logs:api
 npm run logs:n8n
 ```
 
-## 🤝 기여하기
+## 🤝 Contributing
 
 1. Fork the repository
 2. Create a feature branch (`git checkout -b feature/amazing-feature`)
@@ -213,23 +236,23 @@ npm run logs:n8n
 4. Push to the branch (`git push origin feature/amazing-feature`)
 5. Open a Pull Request
 
-## 📄 라이선스
+## 📄 License
 
-이 프로젝트는 MIT 라이선스 하에 배포됩니다. 자세한 내용은 [LICENSE](LICENSE) 파일을 참조하세요.
+This project is distributed under the MIT License. See the [LICENSE](LICENSE) file for details.
 
-## 🙏 감사의 말
+## 🙏 Acknowledgments
 
-- [Obsidian](https://obsidian.md/) - 노트 앱
-- [n8n](https://n8n.io/) - 워크플로우 자동화
-- [P.A.R.A](https://fortelabs.co/blog/para/) - 생산성 방법론
-- [MECE](https://en.wikipedia.org/wiki/MECE_principle) - 분석 프레임워크
+- [Obsidian](https://obsidian.md/) - Note-taking app
+- [n8n](https://n8n.io/) - Workflow automation
+- [P.A.R.A](https://fortelabs.co/blog/para/) - Productivity methodology
+- [MECE](https://en.wikipedia.org/wiki/MECE_principle) - Analysis framework
 
-## 📞 지원
+## 📞 Support
 
-- 이슈 리포트: [GitHub Issues](https://github.com/cheska1025/2nd-Brain-Auto-KOR/issues)
-- 문서: [Wiki](https://github.com/cheska1025/2nd-Brain-Auto-KOR/wiki)
-- 이메일: cheska1025@example.com
+- Issue Reports: [GitHub Issues](https://github.com/cheska1025/2nd-Brain-Auto-ENG/issues)
+- Documentation: [Wiki](https://github.com/cheska1025/2nd-Brain-Auto-ENG/wiki)
+- Email: [cheska1025@github.com](mailto:cheska1025@github.com)
 
 ---
 
-**2nd-Brain-Auto (Ver. KOR)** - AI로 강화된 지식 관리의 새로운 차원을 경험하세요! 🚀
+**2nd-Brain-Auto (Ver. ENG)** - Experience the new dimension of AI-enhanced knowledge management! 🚀
