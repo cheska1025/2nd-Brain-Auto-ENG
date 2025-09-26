@@ -1,0 +1,110 @@
+{
+  "name": "2nd-brain-auto-kor",
+  "version": "1.0.0",
+  "description": "AI-powered second brain system with Obsidian and n8n integration using P.A.R.A methodology (Korean Version)",
+  "main": "index.js",
+  "scripts": {
+    "dev": "docker-compose -f docker-compose.dev.yml up -d && npm run logs",
+    "prod": "docker-compose up -d",
+    "stop": "docker-compose down",
+    "restart": "npm run stop && npm run dev",
+    "logs": "docker-compose -f docker-compose.dev.yml logs -f",
+    "logs:api": "docker logs -f 2nd-brain-api-gateway",
+    "logs:n8n": "docker logs -f 2nd-brain-n8n",
+    "logs:obsidian": "docker logs -f 2nd-brain-obsidian-sync",
+    "logs:claude": "docker logs -f 2nd-brain-claude",
+    
+    "setup": "npm run setup:env && npm run setup:models && npm run setup:workflows",
+    "setup:env": "cp env.example .env && echo '환경변수를 설정하세요: .env 파일'",
+    "setup:models": "docker-compose exec local-ai ollama pull llama2 && docker-compose exec local-ai ollama pull codellama",
+    "setup:workflows": "npm run import:workflows && npm run activate:workflows",
+    
+    "import:workflows": "curl -X POST http://localhost:5678/rest/workflows/import -H 'Content-Type: application/json' -d @./workflows/all-workflows.json",
+    "activate:workflows": "node scripts/activate-workflows.js",
+    
+    "test": "npm run test:integration && npm run test:ai && npm run test:sync",
+    "test:integration": "node tests/integration-test.js",
+    "test:ai": "node tests/ai-classification-test.js",
+    "test:sync": "node tests/sync-test.js",
+    
+    "health": "node scripts/health-check.js",
+    "backup": "node scripts/backup-system.js",
+    "restore": "node scripts/restore-system.js",
+    
+    "analyze:obsidian": "node scripts/obsidian-analyzer.js",
+    "benchmark:notion": "node scripts/notion-benchmark.js",
+    "migrate:data": "node scripts/migrate-data.js",
+    "optimize:ai": "node scripts/optimize-ai-models.js",
+    
+    "start": "n8n start",
+    "start:n8n": "n8n start",
+    "start:ai": "cd ai-service && python main.py",
+    "start:dev": "concurrently \"npm run start:n8n\" \"npm run start:ai\"",
+    "install:ai": "cd ai-service && pip install -r requirements.txt",
+    "init:ai-models": "cd ai-service && python -c \"import nltk; nltk.download('punkt'); nltk.download('stopwords')\"",
+    "test:workflows": "node test/workflow-tests.js",
+    "test:ai": "cd ai-service && python -m pytest test/",
+    "build": "npm run build:ai",
+    "build:ai": "cd ai-service && python -m py_compile main.py",
+    "lint": "eslint . --ext .js,.json",
+    "lint:ai": "cd ai-service && flake8 .",
+    "format": "prettier --write .",
+    "format:ai": "cd ai-service && black .",
+    "clean": "rm -rf node_modules ai-service/__pycache__ ai-service/*.pyc",
+    "restart:n8n": "pkill -f n8n && npm run start:n8n",
+    "restart:ai": "pkill -f python && npm run start:ai",
+    "update": "npm update && cd ai-service && pip install -r requirements.txt --upgrade",
+    "deploy": "npm run build && npm run test && npm run backup"
+  },
+  "keywords": [
+    "obsidian",
+    "n8n",
+    "para-methodology",
+    "ai",
+    "knowledge-management",
+    "automation",
+    "second-brain",
+    "productivity",
+    "note-taking",
+    "workflow"
+  ],
+  "author": "cheska1025",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/cheska1025/2nd-Brain-Auto-KOR.git"
+  },
+  "bugs": {
+    "url": "https://github.com/cheska1025/2nd-Brain-Auto-KOR/issues"
+  },
+  "homepage": "https://github.com/cheska1025/2nd-Brain-Auto-KOR#readme",
+  "dependencies": {
+    "n8n": "^1.0.0",
+    "axios": "^1.5.0",
+    "dotenv": "^16.3.0",
+    "fs-extra": "^11.1.0",
+    "moment": "^2.29.0",
+    "lodash": "^4.17.0",
+    "uuid": "^9.0.0"
+  },
+  "devDependencies": {
+    "concurrently": "^8.2.0",
+    "eslint": "^8.47.0",
+    "prettier": "^3.0.0",
+    "jest": "^29.6.0",
+    "supertest": "^6.3.0"
+  },
+  "engines": {
+    "node": ">=18.0.0",
+    "npm": ">=8.0.0"
+  },
+  "os": [
+    "win32",
+    "darwin",
+    "linux"
+  ],
+  "cpu": [
+    "x64",
+    "arm64"
+  ]
+}

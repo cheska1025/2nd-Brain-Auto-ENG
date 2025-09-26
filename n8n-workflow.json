@@ -1,0 +1,274 @@
+{
+  "name": "2nd-Brain-Auto AI-Enhanced Workflow",
+  "nodes": [
+    {
+      "parameters": {
+        "path": "obsidian-ai",
+        "options": {}
+      },
+      "id": "webhook",
+      "name": "AI Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [-400, 0],
+      "webhookMethods": {
+        "POST": true
+      }
+    },
+    {
+      "parameters": {
+        "value1": "={{$json.action}}",
+        "rules": [
+          {
+            "operation": "equals",
+            "value2": "note.create"
+          },
+          {
+            "operation": "equals", 
+            "value2": "vault.create"
+          },
+          {
+            "operation": "equals",
+            "value2": "file.classify"
+          },
+          {
+            "operation": "equals",
+            "value2": "ai.analyze"
+          },
+          {
+            "operation": "equals",
+            "value2": "ai.tag"
+          }
+        ]
+      },
+      "id": "switch",
+      "name": "AI Action Router",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 1,
+      "position": [-200, 0]
+    },
+    {
+      "parameters": {
+        "url": "http://localhost:8000/api/classify",
+        "options": {
+          "timeout": 10000
+        },
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "content",
+              "value": "={{$json.payload.title + ' ' + $json.payload.content}}"
+            },
+            {
+              "name": "context",
+              "value": "={{$json.payload.metadata || {}}}"
+            }
+          ]
+        }
+      },
+      "id": "aiClassify",
+      "name": "AI Classification",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [0, -200]
+    },
+    {
+      "parameters": {
+        "url": "http://localhost:8000/api/tag",
+        "options": {
+          "timeout": 10000
+        },
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "content",
+              "value": "={{$json.payload.title + ' ' + $json.payload.content}}"
+            },
+            {
+              "name": "category",
+              "value": "={{$json.ai_classification.category}}"
+            },
+            {
+              "name": "confidence",
+              "value": "={{$json.ai_classification.confidence}}"
+            }
+          ]
+        }
+      },
+      "id": "aiTag",
+      "name": "AI Smart Tagging",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [200, -200]
+    },
+    {
+      "parameters": {
+        "language": "JavaScript",
+        "jsCode": "// AI-Enhanced P.A.R.A Automation - Note Creation\n\nconst fs = require('fs').promises;\nconst path = require('path');\n\n// Enhanced P.A.R.A Structure with AI support\nconst PARA_STRUCTURE = {\n  inbox: \"00-Inbox\",\n  projects: \"01-Projects\",\n  areas: \"02-Areas\", \n  resources: \"03-Resources\",\n  archives: \"04-Archives\",\n  templates: \".templates\",\n  ai: \".ai\"\n};\n\n// AI-Enhanced Classification Rules\nconst AI_PARA_CLASSIFICATION = {\n  \"01-Projects\": {\n    keywords: [\"project\", \"development\", \"build\", \"create\", \"task\", \"deadline\", \"work\", \"urgent\", \"launch\", \"release\"],\n    ai_patterns: [\"timeline\", \"milestone\", \"deliverable\", \"completion\", \"deadline\", \"launch\"],\n    priority_keywords: [\"urgent\", \"important\", \"deadline\", \"critical\", \"launch\", \"release\"],\n    complexity_threshold: 0.7\n  },\n  \"02-Areas\": {\n    keywords: [\"management\", \"area\", \"business\", \"routine\", \"daily\", \"health\", \"finance\", \"manage\", \"process\"],\n    ai_patterns: [\"ongoing\", \"continuous\", \"regular\", \"maintenance\", \"process\", \"management\"],\n    priority_keywords: [\"daily\", \"regular\", \"management\", \"routine\", \"process\"],\n    complexity_threshold: 0.5\n  },\n  \"03-Resources\": {\n    keywords: [\"material\", \"reference\", \"learning\", \"study\", \"information\", \"trend\", \"resource\", \"guide\", \"tutorial\"],\n    ai_patterns: [\"educational\", \"informational\", \"reference\", \"learning\", \"study\", \"guide\"],\n    priority_keywords: [\"important\", \"reference\", \"learning\", \"valuable\", \"useful\"],\n    complexity_threshold: 0.6\n  },\n  \"04-Archives\": {\n    keywords: [\"completed\", \"archive\", \"organize\", \"done\", \"finished\", \"past\", \"historical\"],\n    ai_patterns: [\"completed\", \"finished\", \"archived\", \"historical\", \"past\", \"final\"],\n    priority_keywords: [\"completed\", \"archived\", \"historical\", \"final\", \"done\"],\n    complexity_threshold: 0.3\n  }\n};\n\n// Enhanced Priority and Status Rules\nconst AI_PRIORITY_TAGS = {\n  urgent: [\"urgent\", \"deadline\", \"today\", \"immediate\", \"critical\", \"bug\", \"emergency\", \"launch\", \"release\"],\n  important: [\"important\", \"core\", \"key\", \"essential\", \"critical\", \"strategic\", \"valuable\"],\n  normal: [\"normal\", \"regular\", \"standard\"]\n};\n\nconst AI_STATUS_TAGS = {\n  active: [\"active\", \"in-progress\", \"ongoing\", \"current\"],\n  completed: [\"completed\", \"done\", \"finished\", \"final\", \"archived\"],\n  on_hold: [\"hold\", \"pause\", \"suspended\", \"waiting\", \"blocked\"]\n};\n\n// Utility Functions\nasync function ensureDirectory(dirPath) {\n  try {\n    await fs.access(dirPath);\n  } catch (error) {\n    await fs.mkdir(dirPath, { recursive: true });\n  }\n}\n\nfunction aiClassifyByPARA(text, aiClassification, tags = []) {\n  // Use AI classification if available and confident\n  if (aiClassification && aiClassification.confidence > 0.8) {\n    return aiClassification.category;\n  }\n  \n  // Fallback to keyword-based classification\n  const lowerText = (text + ' ' + tags.join(' ')).toLowerCase();\n  \n  for (const [category, rules] of Object.entries(AI_PARA_CLASSIFICATION)) {\n    if (rules.keywords.some(k => lowerText.includes(k.toLowerCase()))) {\n      return category;\n    }\n  }\n  \n  return '02-Areas'; // Default value\n}\n\nfunction getAIPriorityTags(text, aiClassification, tags = []) {\n  const lowerText = (text + ' ' + tags.join(' ')).toLowerCase();\n  const priorityTags = [];\n  \n  // Use AI confidence for priority determination\n  if (aiClassification && aiClassification.confidence > 0.9) {\n    if (aiClassification.priority === 'urgent') priorityTags.push('#urgent');\n    else if (aiClassification.priority === 'important') priorityTags.push('#important');\n    else priorityTags.push('#normal');\n  } else {\n    // Fallback to keyword-based priority\n    if (AI_PRIORITY_TAGS.urgent.some(k => lowerText.includes(k.toLowerCase()))) {\n      priorityTags.push('#urgent');\n    }\n    if (AI_PRIORITY_TAGS.important.some(k => lowerText.includes(k.toLowerCase()))) {\n      priorityTags.push('#important');\n    }\n    if (priorityTags.length === 0) {\n      priorityTags.push('#normal');\n    }\n  }\n  \n  return priorityTags;\n}\n\nfunction getAIStatusTags(text, aiClassification, tags = []) {\n  const lowerText = (text + ' ' + tags.join(' ')).toLowerCase();\n  \n  if (aiClassification && aiClassification.status) {\n    return [`#${aiClassification.status}`];\n  }\n  \n  // Fallback to keyword-based status\n  if (AI_STATUS_TAGS.completed.some(k => lowerText.includes(k.toLowerCase()))) {\n    return ['#completed'];\n  }\n  if (AI_STATUS_TAGS.on_hold.some(k => lowerText.includes(k.toLowerCase()))) {\n    return ['#on-hold'];\n  }\n  \n  return ['#active'];\n}\n\nfunction getAICategoryTag(paraCategory) {\n  const categoryMap = {\n    '01-Projects': '#project',\n    '02-Areas': '#area',\n    '03-Resources': '#resource',\n    '04-Archives': '#archive'\n  };\n  return categoryMap[paraCategory] || '#normal';\n}\n\nasync function loadAITemplate(vaultPath, templatePath, aiMetadata = {}) {\n  try {\n    const fullPath = path.join(vaultPath, templatePath);\n    let template = await fs.readFile(fullPath, 'utf8');\n    \n    // Enhance template with AI metadata\n    if (aiMetadata.complexity) {\n      template = template.replace('{{ai_complexity}}', aiMetadata.complexity);\n    }\n    if (aiMetadata.estimated_time) {\n      template = template.replace('{{ai_estimated_time}}', aiMetadata.estimated_time);\n    }\n    if (aiMetadata.related_topics) {\n      template = template.replace('{{ai_related_topics}}', aiMetadata.related_topics.join(', '));\n    }\n    \n    return template;\n  } catch (error) {\n    // Enhanced default template with AI fields\n    return `---\ntitle: \"{{title}}\"\ndate: {{date}}\ncreated: {{created}}\nmodified: {{modified}}\ntags: [{{tags}}]\npara_category: {{para_category}}\npriority: {{priority}}\nstatus: {{status}}\nversion: {{version}}\nsource: {{source}}\nai_confidence: {{ai_confidence}}\nai_complexity: {{ai_complexity}}\nai_estimated_time: {{ai_estimated_time}}\nai_related_topics: [{{ai_related_topics}}]\n---\n\n# {{title}}\n\n## AI Analysis\n- **Confidence**: {{ai_confidence}}%\n- **Complexity**: {{ai_complexity}}\n- **Estimated Time**: {{ai_estimated_time}}\n- **Related Topics**: {{ai_related_topics}}\n\n## Overview\n-\n\n## Details  \n-\n\n## Action Items\n- [ ] \n\n## Reference Links\n-\n\n## AI Insights\n-`;\n  }\n}\n\nfunction generateAIFrontmatter({ title, paraCategory, tags, priority, status, metadata, currentDate, currentDateTime, version = '', aiClassification = {} }) {\n  const allTags = [...tags, getAICategoryTag(paraCategory), ...getAIPriorityTags(title, aiClassification, tags), ...getAIStatusTags(title, aiClassification, tags)];\n  \n  // Add AI-generated tags if available\n  if (aiClassification.smart_tags) {\n    allTags.push(...aiClassification.smart_tags.map(tag => `#${tag}`));\n  }\n  \n  return `---\ntitle: \"${title}\"\ndate: ${currentDate}\ncreated: ${currentDateTime}\nmodified: ${currentDateTime}\ntags: [${allTags.join(', ')}]\npara_category: ${paraCategory}\npriority: ${priority}\nstatus: ${status}\nversion: ${version}\nsource: ${metadata.source || 'n8n-ai'}\nai_confidence: ${aiClassification.confidence || 0}\nai_complexity: ${aiClassification.complexity || 'medium'}\nai_estimated_time: ${aiClassification.estimated_time || 'unknown'}\nai_related_topics: [${(aiClassification.related_topics || []).join(', ')}]\nai_analysis_date: ${currentDateTime}\n---`;\n}\n\nfunction generateAIFileName(date, title, version = '', aiTags = []) {\n  const sanitizedTitle = title.replace(/[\\/:*?\"<>|]/g, '').trim();\n  const versionSuffix = version ? `_${version}` : '';\n  const aiTagSuffix = aiTags.length > 0 ? `_${aiTags.slice(0, 2).join('-')}` : '';\n  return `${date}_${sanitizedTitle}${versionSuffix}${aiTagSuffix}.md`;\n}\n\n// Main execution function\nasync function main() {\n  const input = $input.all()[0].json;\n  const { action, vault_path, payload } = input;\n  const currentDate = new Date().toISOString().split('T')[0];\n  const currentDateTime = new Date().toISOString();\n  \n  const { title, content = '', tags = [], folder, template, metadata = {}, ai_classification = {} } = payload;\n  \n  // 1. AI-enhanced P.A.R.A category classification\n  const paraCategory = metadata.para_category || aiClassifyByPARA(title + ' ' + content, ai_classification, tags);\n  \n  // 2. AI-enhanced priority and status tag determination\n  const priority = getAIPriorityTags(title + ' ' + content, ai_classification, tags).join(' ').replace(/#/g, '');\n  const status = getAIStatusTags(title + ' ' + content, ai_classification, tags).join(' ').replace(/#/g, '');\n  \n  // 3. Version information extraction\n  const versionMatch = title.match(/v\\d+/i);\n  const version = versionMatch ? versionMatch[0] : (metadata.version || '');\n  \n  // 4. Final folder path determination\n  const targetFolder = folder || PARA_STRUCTURE[Object.keys(PARA_STRUCTURE).find(key => paraCategory.includes(key))] || PARA_STRUCTURE.areas;\n  const targetPath = path.join(vault_path, targetFolder);\n  \n  // 5. AI-enhanced template loading and processing\n  const templateContent = await loadAITemplate(vault_path, template || '.templates/note.md', ai_classification);\n  \n  // 6. AI-enhanced frontmatter generation\n  const frontmatter = generateAIFrontmatter({\n    title,\n    paraCategory,\n    tags,\n    priority,\n    status,\n    metadata,\n    currentDate,\n    currentDateTime,\n    version,\n    aiClassification: ai_classification\n  });\n  \n  // 7. Final content composition with AI enhancements\n  let finalContent = templateContent\n    .replace(/\\{\\{title\\}\\}/g, title)\n    .replace(/\\{\\{date\\}\\}/g, currentDate)\n    .replace(/\\{\\{created\\}\\}/g, currentDateTime)\n    .replace(/\\{\\{modified\\}\\}/g, currentDateTime)\n    .replace(/\\{\\{tags\\}\\}/g, tags.join(', '))\n    .replace(/\\{\\{source\\}\\}/g, metadata.source || 'n8n-ai')\n    .replace(/\\{\\{para_category\\}\\}/g, paraCategory)\n    .replace(/\\{\\{priority\\}\\}/g, priority)\n    .replace(/\\{\\{status\\}\\}/g, status)\n    .replace(/\\{\\{version\\}\\}/g, version)\n    .replace(/\\{\\{ai_confidence\\}\\}/g, ai_classification.confidence || 0)\n    .replace(/\\{\\{ai_complexity\\}\\}/g, ai_classification.complexity || 'medium')\n    .replace(/\\{\\{ai_estimated_time\\}\\}/g, ai_classification.estimated_time || 'unknown')\n    .replace(/\\{\\{ai_related_topics\\}\\}/g, (ai_classification.related_topics || []).join(', '));\n  \n  if (!/^---\\n[\\s\\S]*?\\n---/m.test(finalContent)) {\n    finalContent = frontmatter + '\\n\\n' + finalContent;\n  }\n  \n  if (content) {\n    finalContent += '\\n\\n' + content;\n  }\n  \n  // 8. AI-enhanced file creation\n  await ensureDirectory(targetPath);\n  const fileName = generateAIFileName(currentDate, title, version, ai_classification.smart_tags || []);\n  const filePath = path.join(targetPath, fileName);\n  \n  await fs.writeFile(filePath, finalContent, 'utf8');\n  \n  // 9. Save AI analysis data\n  if (ai_classification) {\n    const aiDataPath = path.join(vault_path, '.ai', 'learning-data', `${currentDate}_${title.replace(/[\\/:*?\"<>|]/g, '_')}.json`);\n    await ensureDirectory(path.dirname(aiDataPath));\n    await fs.writeFile(aiDataPath, JSON.stringify({\n      title,\n      content,\n      ai_classification,\n      para_category: paraCategory,\n      timestamp: currentDateTime\n    }, null, 2));\n  }\n  \n  return {\n    success: true,\n    path: filePath,\n    fileName: fileName,\n    paraCategory,\n    targetFolder,\n    version: version,\n    ai_confidence: ai_classification.confidence || 0,\n    ai_complexity: ai_classification.complexity || 'medium',\n    tags: getAIPriorityTags(title, ai_classification, tags).concat(getAIStatusTags(title, ai_classification, tags)).concat([getAICategoryTag(paraCategory)]),\n    message: `AI-enhanced note saved as ${fileName} in ${paraCategory} folder with ${ai_classification.confidence || 0}% confidence.`\n  };\n}\n\nreturn await main();"
+      },
+      "id": "noteCode",
+      "name": "AI-Enhanced Note Creation",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [400, -200]
+    },
+    {
+      "parameters": {
+        "language": "JavaScript",
+        "jsCode": "// AI-Enhanced P.A.R.A Automation - Vault Creation\n\nconst fs = require('fs').promises;\nconst path = require('path');\n\n// Enhanced P.A.R.A Structure with AI support\nconst PARA_STRUCTURE = {\n  inbox: \"00-Inbox\",\n  projects: \"01-Projects\",\n  areas: \"02-Areas\", \n  resources: \"03-Resources\",\n  archives: \"04-Archives\",\n  templates: \".templates\",\n  ai: \".ai\"\n};\n\n// Utility Functions\nasync function ensureDirectory(dirPath) {\n  try {\n    await fs.access(dirPath);\n  } catch (error) {\n    await fs.mkdir(dirPath, { recursive: true });\n  }\n}\n\nasync function createAITemplates(vaultPath) {\n  const templateDir = path.join(vaultPath, '.templates');\n  \n  const noteTemplate = `---\ntitle: \"{{title}}\"\ndate: {{date}}\ncreated: {{created}}\nmodified: {{modified}}\ntags: [{{tags}}]\npara_category: {{para_category}}\npriority: {{priority}}\nstatus: {{status}}\nversion: {{version}}\nsource: {{source}}\nai_confidence: {{ai_confidence}}\nai_complexity: {{ai_complexity}}\nai_estimated_time: {{ai_estimated_time}}\nai_related_topics: [{{ai_related_topics}}]\n---\n\n# {{title}}\n\n## AI Analysis\n- **Confidence**: {{ai_confidence}}%\n- **Complexity**: {{ai_complexity}}\n- **Estimated Time**: {{ai_estimated_time}}\n- **Related Topics**: {{ai_related_topics}}\n\n## Overview\n-\n\n## Details  \n-\n\n## Action Items\n- [ ] \n\n## Reference Links\n-\n\n## AI Insights\n-`;\n\n  const projectTemplate = `---\ntitle: \"{{title}}\"\ndate: {{date}}\ncreated: {{created}}\nmodified: {{modified}}\ntags: [project, {{tags}}]\npara_category: 01-Projects\npriority: {{priority}}\nstatus: {{status}}\nversion: {{version}}\nsource: {{source}}\nai_confidence: {{ai_confidence}}\nai_complexity: {{ai_complexity}}\nai_estimated_time: {{ai_estimated_time}}\nai_related_topics: [{{ai_related_topics}}]\ndeadline: \n---\n\n# Project: {{title}}\n\n## AI Project Analysis\n- **Confidence**: {{ai_confidence}}%\n- **Complexity**: {{ai_complexity}}\n- **Estimated Duration**: {{ai_estimated_time}}\n- **Related Topics**: {{ai_related_topics}}\n\n## Goals\n-\n\n## Success Criteria\n- [ ] \n\n## Milestones\n- [ ] Phase 1: \n- [ ] Phase 2: \n- [ ] Phase 3: \n\n## Resources\n-\n\n## Risks\n-\n\n## AI Insights\n-`;\n\n  const meetingTemplate = `---\ntitle: \"{{title}}\"\ndate: {{date}}\ncreated: {{created}}\nmodified: {{modified}}\ntags: [meeting, {{tags}}]\npara_category: 02-Areas\npriority: {{priority}}\nstatus: {{status}}\nversion: {{version}}\nsource: {{source}}\nai_confidence: {{ai_confidence}}\nai_complexity: {{ai_complexity}}\nai_estimated_time: {{ai_estimated_time}}\nai_related_topics: [{{ai_related_topics}}]\nattendees: []\n---\n\n# {{title}}\n\n## AI Meeting Analysis\n- **Confidence**: {{ai_confidence}}%\n- **Complexity**: {{ai_complexity}}\n- **Estimated Duration**: {{ai_estimated_time}}\n- **Related Topics**: {{ai_related_topics}}\n\n## Attendees\n-\n\n## Agenda\n1. \n\n## Discussion Points\n-\n\n## Decisions  \n-\n\n## Action Items\n- [ ] Assignee: , Deadline: \n\n## Next Meeting\n- Date: \n- Agenda:\n\n## AI Insights\n-`;\n\n  const resourceTemplate = `---\ntitle: \"{{title}}\"\ndate: {{date}}\ncreated: {{created}}\nmodified: {{modified}}\ntags: [resource, {{tags}}]\npara_category: 03-Resources\npriority: {{priority}}\nstatus: {{status}}\nversion: {{version}}\nsource: {{source}}\nai_confidence: {{ai_confidence}}\nai_complexity: {{ai_complexity}}\nai_estimated_time: {{ai_estimated_time}}\nai_related_topics: [{{ai_related_topics}}]\n---\n\n# {{title}}\n\n## AI Resource Analysis\n- **Confidence**: {{ai_confidence}}%\n- **Complexity**: {{ai_complexity}}\n- **Estimated Study Time**: {{ai_estimated_time}}\n- **Related Topics**: {{ai_related_topics}}\n\n## Overview\n-\n\n## Key Concepts\n-\n\n## Learning Path\n- [ ] \n\n## Resources\n-\n\n## Practice Exercises\n- [ ] \n\n## AI Insights\n-`;\n\n  await fs.writeFile(path.join(templateDir, 'note.md'), noteTemplate, 'utf8');\n  await fs.writeFile(path.join(templateDir, 'project.md'), projectTemplate, 'utf8');  \n  await fs.writeFile(path.join(templateDir, 'meeting.md'), meetingTemplate, 'utf8');\n  await fs.writeFile(path.join(templateDir, 'resource.md'), resourceTemplate, 'utf8');\n}\n\nasync function createAIDirectories(vaultPath) {\n  const aiDir = path.join(vaultPath, '.ai');\n  const subDirs = ['classification-models', 'learning-data', 'insights', 'cache'];\n  \n  for (const subDir of subDirs) {\n    await ensureDirectory(path.join(aiDir, subDir));\n  }\n  \n  // Create AI configuration file\n  const aiConfig = {\n    version: \"1.0.0\",\n    classification: {\n      model: \"gpt-4\",\n      confidence_threshold: 0.8,\n      learning_enabled: true\n    },\n    tagging: {\n      max_tags: 10,\n      min_confidence: 0.6,\n      semantic_grouping: true\n    },\n    content_analysis: {\n      extract_entities: true,\n      sentiment_analysis: true,\n      complexity_scoring: true\n    }\n  };\n  \n  await fs.writeFile(path.join(aiDir, 'config.json'), JSON.stringify(aiConfig, null, 2));\n}\n\nasync function createVaultSettings(vaultPath) {\n  const obsidianDir = path.join(vaultPath, '.obsidian');\n  await ensureDirectory(obsidianDir);\n  \n  const config = {\n    \"theme\": \"moonstone\",\n    \"translucency\": false,\n    \"cssTheme\": \"\",\n    \"hotkeys\": {},\n    \"workspaceLayout\": {\n      \"main\": {\n        \"id\": \"main\",\n        \"type\": \"split\",\n        \"children\": [\n          {\n            \"id\": \"file-explorer\",\n            \"type\": \"leaf\",\n            \"state\": {\n              \"type\": \"file-explorer\",\n              \"state\": {}\n            }\n          }\n        ]\n      }\n    },\n    \"plugins\": {\n      \"dataview\": true,\n      \"templater\": true,\n      \"tasks\": true\n    }\n  };\n  \n  await fs.writeFile(path.join(obsidianDir, 'app.json'), JSON.stringify(config, null, 2));\n}\n\n// Main execution function\nasync function main() {\n  const input = $input.all()[0].json;\n  const { vault_path } = input;\n  \n  // 1. Create P.A.R.A directory structure\n  const allFolders = Object.values(PARA_STRUCTURE);\n  \n  for (const folder of allFolders) {\n    await ensureDirectory(path.join(vault_path, folder));\n  }\n  \n  // 2. Create AI-enhanced templates\n  await createAITemplates(vault_path);\n  \n  // 3. Create AI directories and configuration\n  await createAIDirectories(vault_path);\n  \n  // 4. Create vault settings file\n  await createVaultSettings(vault_path);\n  \n  return {\n    success: true,\n    vault: vault_path,\n    structure: allFolders,\n    ai_enabled: true,\n    message: 'AI-enhanced P.A.R.A vault has been created with advanced features.'\n  };\n}\n\nreturn await main();"
+      },
+      "id": "vaultCode",
+      "name": "AI-Enhanced Vault Creation",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [400, 0]
+    },
+    {
+      "parameters": {
+        "language": "JavaScript",
+        "jsCode": "// AI-Enhanced P.A.R.A Automation - File Classification\n\nconst fs = require('fs').promises;\nconst path = require('path');\n\n// Enhanced P.A.R.A Structure\nconst PARA_STRUCTURE = {\n  inbox: \"00-Inbox\",\n  projects: \"01-Projects\",\n  areas: \"02-Areas\", \n  resources: \"03-Resources\",\n  archives: \"04-Archives\",\n  templates: \".templates\",\n  ai: \".ai\"\n};\n\n// AI-Enhanced Classification Rules\nconst AI_PARA_CLASSIFICATION = {\n  \"01-Projects\": {\n    keywords: [\"project\", \"development\", \"build\", \"create\", \"task\", \"deadline\", \"work\", \"urgent\", \"launch\", \"release\"],\n    ai_patterns: [\"timeline\", \"milestone\", \"deliverable\", \"completion\", \"deadline\", \"launch\"],\n    priority_keywords: [\"urgent\", \"important\", \"deadline\", \"critical\", \"launch\", \"release\"],\n    complexity_threshold: 0.7\n  },\n  \"02-Areas\": {\n    keywords: [\"management\", \"area\", \"business\", \"routine\", \"daily\", \"health\", \"finance\", \"manage\", \"process\"],\n    ai_patterns: [\"ongoing\", \"continuous\", \"regular\", \"maintenance\", \"process\", \"management\"],\n    priority_keywords: [\"daily\", \"regular\", \"management\", \"routine\", \"process\"],\n    complexity_threshold: 0.5\n  },\n  \"03-Resources\": {\n    keywords: [\"material\", \"reference\", \"learning\", \"study\", \"information\", \"trend\", \"resource\", \"guide\", \"tutorial\"],\n    ai_patterns: [\"educational\", \"informational\", \"reference\", \"learning\", \"study\", \"guide\"],\n    priority_keywords: [\"important\", \"reference\", \"learning\", \"valuable\", \"useful\"],\n    complexity_threshold: 0.6\n  },\n  \"04-Archives\": {\n    keywords: [\"completed\", \"archive\", \"organize\", \"done\", \"finished\", \"past\", \"historical\"],\n    ai_patterns: [\"completed\", \"finished\", \"archived\", \"historical\", \"past\", \"final\"],\n    priority_keywords: [\"completed\", \"archived\", \"historical\", \"final\", \"done\"],\n    complexity_threshold: 0.3\n  }\n};\n\n// Utility Functions\nasync function ensureDirectory(dirPath) {\n  try {\n    await fs.access(dirPath);\n  } catch (error) {\n    await fs.mkdir(dirPath, { recursive: true });\n  }\n}\n\nfunction aiClassifyByPARA(text, aiClassification, tags = []) {\n  // Use AI classification if available and confident\n  if (aiClassification && aiClassification.confidence > 0.8) {\n    return aiClassification.category;\n  }\n  \n  // Fallback to keyword-based classification\n  const lowerText = (text + ' ' + tags.join(' ')).toLowerCase();\n  \n  for (const [category, rules] of Object.entries(AI_PARA_CLASSIFICATION)) {\n    if (rules.keywords.some(k => lowerText.includes(k.toLowerCase()))) {\n      return category;\n    }\n  }\n  \n  return '02-Areas'; // Default value\n}\n\nfunction parseFrontmatter(content) {\n  const match = content.match(/^---\\n([\\s\\S]*?)\\n---\\n?([\\s\\S]*)$/);\n  if (!match) return { frontmatter: {}, body: content };\n  \n  const frontmatterText = match[1];\n  const body = match[2];\n  \n  const frontmatter = {};\n  frontmatterText.split('\\n').forEach(line => {\n    const colonIndex = line.indexOf(':');\n    if (colonIndex > -1) {\n      const key = line.substring(0, colonIndex).trim();\n      const value = line.substring(colonIndex + 1).trim();\n      frontmatter[key] = value.replace(/^[\"']|[\"']$/g, '');\n    }\n  });\n  \n  return { frontmatter, body };\n}\n\nfunction generateFrontmatterString(frontmatter) {\n  const lines = Object.entries(frontmatter).map(([key, value]) => {\n    if (Array.isArray(value)) {\n      return `${key}: [${value.join(', ')}]`;\n    }\n    return `${key}: ${typeof value === 'string' ? `\"${value}\"` : value}`;\n  });\n  return `---\\n${lines.join('\\n')}\\n---`;\n}\n\nfunction generateAIFileName(date, title, version = '', aiTags = []) {\n  const sanitizedTitle = title.replace(/[\\/:*?\"<>|]/g, '').trim();\n  const versionSuffix = version ? `_${version}` : '';\n  const aiTagSuffix = aiTags.length > 0 ? `_${aiTags.slice(0, 2).join('-')}` : '';\n  return `${date}_${sanitizedTitle}${versionSuffix}${aiTagSuffix}.md`;\n}\n\n// Main execution function\nasync function main() {\n  const input = $input.all()[0].json;\n  const { vault_path, payload } = input;\n  const { files = [], auto_classify = true, ai_enhanced = true } = payload;\n  const results = [];\n  \n  for (const filePath of files) {\n    try {\n      const content = await fs.readFile(filePath, 'utf8');\n      const { frontmatter, body } = parseFrontmatter(content);\n      \n      let paraCategory;\n      let aiClassification = {};\n      \n      if (auto_classify) {\n        if (ai_enhanced) {\n          // TODO: Call AI classification service\n          // For now, use keyword-based classification\n          paraCategory = aiClassifyByPARA(frontmatter.title + ' ' + body, {}, frontmatter.tags || []);\n        } else {\n          paraCategory = aiClassifyByPARA(frontmatter.title + ' ' + body, {}, frontmatter.tags || []);\n        }\n      } else {\n        paraCategory = payload.para_category || '02-Areas';\n      }\n      \n      const targetFolder = PARA_STRUCTURE[Object.keys(PARA_STRUCTURE).find(key => paraCategory.includes(key))] || PARA_STRUCTURE.areas;\n      const targetPath = path.join(vault_path, targetFolder);\n      \n      // Version information extraction\n      const versionMatch = frontmatter.title?.match(/v\\d+/i);\n      const version = versionMatch ? versionMatch[0] : (frontmatter.version || '');\n      \n      // AI-enhanced filename generation\n      const currentDate = new Date().toISOString().split('T')[0];\n      const newFileName = generateAIFileName(currentDate, frontmatter.title || 'Untitled', version, aiClassification.smart_tags || []);\n      const newFilePath = path.join(targetPath, newFileName);\n      \n      const updatedFrontmatter = {\n        ...frontmatter,\n        para_category: paraCategory,\n        moved_date: new Date().toISOString(),\n        version: version,\n        ai_enhanced: ai_enhanced,\n        ai_classification_date: new Date().toISOString(),\n        tags: Array.from(new Set([...(frontmatter.tags || []), paraCategory.toLowerCase()]))\n      };\n      \n      const newContent = generateFrontmatterString(updatedFrontmatter) + '\\n\\n' + body;\n      \n      await ensureDirectory(targetPath);\n      await fs.writeFile(newFilePath, newContent, 'utf8');\n      await fs.unlink(filePath);\n      \n      results.push({\n        originalPath: filePath,\n        newPath: newFilePath,\n        newFileName: newFileName,\n        paraCategory,\n        version: version,\n        ai_enhanced: ai_enhanced\n      });\n      \n    } catch (error) {\n      results.push({\n        originalPath: filePath,\n        error: error.message\n      });\n    }\n  }\n  \n  return {\n    success: true,\n    processedFiles: results.length,\n    ai_enhanced: ai_enhanced,\n    results,\n    message: `${results.length} files have been AI-enhanced and classified with P.A.R.A.`\n  };\n}\n\nreturn await main();"
+      },
+      "id": "classifyCode",
+      "name": "AI-Enhanced File Classification",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [400, 200]
+    },
+    {
+      "parameters": {
+        "url": "http://localhost:8000/api/analyze",
+        "options": {
+          "timeout": 15000
+        },
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "content",
+              "value": "={{$json.payload.content}}"
+            },
+            {
+              "name": "title",
+              "value": "={{$json.payload.title}}"
+            },
+            {
+              "name": "context",
+              "value": "={{$json.payload.metadata || {}}}"
+            }
+          ]
+        }
+      },
+      "id": "aiAnalyze",
+      "name": "AI Content Analysis",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [0, 200]
+    },
+    {
+      "parameters": {
+        "url": "http://localhost:8000/api/tag",
+        "options": {
+          "timeout": 10000
+        },
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "content",
+              "value": "={{$json.payload.content}}"
+            },
+            {
+              "name": "title",
+              "value": "={{$json.payload.title}}"
+            },
+            {
+              "name": "analysis",
+              "value": "={{$json.analysis}}"
+            }
+          ]
+        }
+      },
+      "id": "aiTagStandalone",
+      "name": "AI Standalone Tagging",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [200, 200]
+    }
+  ],
+  "connections": {
+    "AI Webhook": {
+      "main": [
+        [
+          {
+            "node": "AI Action Router",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Action Router": {
+      "main": [
+        [
+          {
+            "node": "AI Classification",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "AI-Enhanced Vault Creation",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "AI-Enhanced File Classification",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "AI Content Analysis",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "AI Standalone Tagging",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Classification": {
+      "main": [
+        [
+          {
+            "node": "AI Smart Tagging",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Smart Tagging": {
+      "main": [
+        [
+          {
+            "node": "AI-Enhanced Note Creation",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  }
+}

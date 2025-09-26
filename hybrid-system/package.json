@@ -1,0 +1,54 @@
+{
+  "name": "2nd-brain-auto-hybrid",
+  "version": "1.0.0",
+  "description": "MECE 원칙 기반의 한국어 인터페이스와 AI 자동화를 결합한 지능형 지식 관리 시스템",
+  "main": "main.js",
+  "scripts": {
+    "start": "node main.js",
+    "dev": "nodemon main.js",
+    "test": "jest",
+    "lint": "eslint .",
+    "format": "prettier --write .",
+    "init": "node scripts/init.js",
+    "health-check": "node scripts/health-check.js",
+    "backup": "node scripts/backup.js"
+  },
+  "keywords": [
+    "knowledge-management",
+    "ai",
+    "automation",
+    "mece",
+    "para",
+    "obsidian",
+    "notion",
+    "korean"
+  ],
+  "author": "2nd-Brain-Auto Team",
+  "license": "MIT",
+  "dependencies": {
+    "express": "^4.18.2",
+    "cors": "^2.8.5",
+    "helmet": "^7.1.0",
+    "express-rate-limit": "^7.1.5",
+    "compression": "^1.7.4",
+    "dotenv": "^16.3.1",
+    "axios": "^1.6.2",
+    "node-cron": "^3.0.3",
+    "winston": "^3.11.0",
+    "joi": "^17.11.0",
+    "ioredis": "^5.3.2",
+    "sqlite3": "^5.1.6",
+    "uuid": "^9.0.1",
+    "puppeteer": "^21.6.1"
+  },
+  "devDependencies": {
+    "nodemon": "^3.0.2",
+    "jest": "^29.7.0",
+    "eslint": "^8.55.0",
+    "prettier": "^3.1.0",
+    "supertest": "^6.3.3"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}

@@ -1,0 +1,465 @@
+{
+  "name": "2nd-Brain-Auto 하이브리드 워크플로우",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "process",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "webhook-trigger",
+      "name": "웹훅 트리거",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [240, 300],
+      "webhookId": "second-brain-hybrid"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "string": [
+            {
+              "value1": "={{ $json.input }}",
+              "operation": "isNotEmpty"
+            }
+          ]
+        }
+      },
+      "id": "input-validation",
+      "name": "입력 검증",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [460, 300]
+    },
+    {
+      "parameters": {
+        "jsCode": "// 입력 데이터 정규화 및 전처리\nconst input = $input.first().json;\n\n// 기본값 설정\nconst normalizedInput = {\n  input: input.input || '',\n  userHeadline: input.userHeadline || null,\n  processingType: input.processingType || null,\n  enableAI: input.enableAI !== false,\n  enableSync: input.enableSync !== false,\n  context: {\n    timestamp: new Date().toISOString(),\n    userAgent: input.userAgent || 'unknown',\n    source: 'web_dashboard'\n  }\n};\n\n// 입력 길이 검증\nif (normalizedInput.input.length > 10000) {\n  throw new Error('입력 내용이 너무 깁니다 (최대 10,000자)');\n}\n\n// 특수 문자 검증\nconst dangerousChars = /<script|javascript:|on\w+=/i;\nif (dangerousChars.test(normalizedInput.input)) {\n  throw new Error('잘못된 입력이 감지되었습니다');\n}\n\nreturn {\n  json: normalizedInput\n};"
+      },
+      "id": "input-preprocessing",
+      "name": "입력 전처리",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [680, 300]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "string": [
+            {
+              "value1": "={{ $json.userHeadline }}",
+              "operation": "isNotEmpty"
+            }
+          ]
+        }
+      },
+      "id": "headline-check",
+      "name": "헤드라인 확인",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [900, 200]
+    },
+    {
+      "parameters": {
+        "url": "http://localhost:3000/api/mece/classify",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "input",
+              "value": "={{ $json.input }}"
+            },
+            {
+              "name": "userHeadline",
+              "value": "={{ $json.userHeadline }}"
+            },
+            {
+              "name": "context",
+              "value": "={{ $json.context }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "mece-classification",
+      "name": "MECE 분류",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [1120, 200]
+    },
+    {
+      "parameters": {
+        "url": "http://localhost:3000/api/ai/process",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "input",
+              "value": "={{ $json.input }}"
+            },
+            {
+              "name": "meceResult",
+              "value": "={{ $json }}"
+            },
+            {
+              "name": "processingType",
+              "value": "={{ $('입력 전처리').item.json.processingType }}"
+            },
+            {
+              "name": "provider",
+              "value": "={{ $('입력 전처리').item.json.context.defaultProvider || 'claude' }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "ai-processing",
+      "name": "AI 처리",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [1340, 200]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "string": [
+            {
+              "value1": "={{ $('입력 전처리').item.json.enableSync }}",
+              "operation": "equal",
+              "value2": "true"
+            }
+          ]
+        }
+      },
+      "id": "sync-check",
+      "name": "동기화 확인",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [1560, 200]
+    },
+    {
+      "parameters": {
+        "url": "http://localhost:3000/api/sync/execute",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "content",
+              "value": "={{ $('입력 전처리').item.json.input }}"
+            },
+            {
+              "name": "meceResult",
+              "value": "={{ $('MECE 분류').item.json }}"
+            },
+            {
+              "name": "aiResult",
+              "value": "={{ $json }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "sync-execution",
+      "name": "동기화 실행",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [1780, 200]
+    },
+    {
+      "parameters": {
+        "jsCode": "// 결과 통합 및 응답 생성\nconst inputData = $('입력 전처리').first().json;\nconst meceResult = $('MECE 분류').first().json;\nconst aiResult = $('AI 처리').first().json;\nconst syncResult = $('동기화 실행').first().json || null;\n\n// 통합 결과 생성\nconst integratedResult = {\n  // 기본 정보\n  input: inputData.input,\n  timestamp: new Date().toISOString(),\n  id: `hybrid_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,\n  \n  // MECE 분류 결과\n  mece: {\n    category: meceResult.meceCategory,\n    confidence: meceResult.confidence,\n    reasoning: meceResult.reasoning,\n    paraCategory: meceResult.paraCategory,\n    priority: meceResult.priority,\n    destinations: meceResult.destinations,\n    folderPaths: meceResult.folderPaths\n  },\n  \n  // AI 처리 결과\n  ai: {\n    processingType: aiResult.processingType,\n    provider: aiResult.provider,\n    response: aiResult.response,\n    timestamp: aiResult.timestamp\n  },\n  \n  // 동기화 결과\n  sync: syncResult ? {\n    status: syncResult.status,\n    platforms: syncResult.platforms,\n    syncId: syncResult.syncId,\n    timestamp: syncResult.timestamp\n  } : null,\n  \n  // 통합 결과\n  integrated: {\n    title: aiResult.response?.title || meceResult.title || '제목 없음',\n    summary: aiResult.response?.summary || aiResult.response?.analysis || '요약 없음',\n    actionItems: [\n      ...(aiResult.response?.action_items || []),\n      ...(aiResult.response?.next_actions || []),\n      ...(aiResult.response?.next_steps || [])\n    ].filter(item => item && item.trim()),\n    tags: [\n      meceResult.meceCategory.replace('-', '_'),\n      meceResult.paraCategory.toLowerCase(),\n      'ai_processed',\n      'mece_compliant',\n      'hybrid_system'\n    ],\n    metadata: {\n      meceId: meceResult.id,\n      processingType: aiResult.processingType,\n      provider: aiResult.provider,\n      confidence: meceResult.confidence,\n      source: meceResult.source,\n      methods: meceResult.methods || [],\n      createdAt: meceResult.timestamp,\n      processedAt: aiResult.timestamp,\n      syncedAt: syncResult?.timestamp || null\n    }\n  },\n  \n  // 처리 옵션\n  options: {\n    enableAI: inputData.enableAI,\n    enableSync: inputData.enableSync,\n    userHeadline: inputData.userHeadline,\n    processingType: inputData.processingType\n  }\n};\n\n// 액션 아이템이 없으면 기본 메시지 추가\nif (integratedResult.integrated.actionItems.length === 0) {\n  integratedResult.integrated.actionItems.push('액션 아이템 없음');\n}\n\n// 성공 응답 반환\nreturn {\n  json: {\n    success: true,\n    data: integratedResult,\n    message: '처리가 완료되었습니다.'\n  }\n};"
+      },
+      "id": "result-integration",
+      "name": "결과 통합",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [2000, 200]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ $json }}"
+      },
+      "id": "success-response",
+      "name": "성공 응답",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [2220, 200]
+    },
+    {
+      "parameters": {
+        "jsCode": "// 에러 처리 및 로깅\nconst error = $input.first().json;\n\n// 에러 로그 생성\nconst errorLog = {\n  timestamp: new Date().toISOString(),\n  error: {\n    message: error.message || '알 수 없는 오류',\n    type: error.type || 'UnknownError',\n    stack: error.stack || null\n  },\n  context: {\n    node: error.node || 'unknown',\n    workflow: '2nd-brain-hybrid',\n    input: $('입력 전처리').first()?.json || null\n  },\n  severity: 'error'\n};\n\n// 에러 응답 생성\nconst errorResponse = {\n  success: false,\n  error: {\n    message: '처리 중 오류가 발생했습니다.',\n    code: 'PROCESSING_ERROR',\n    details: errorLog\n  },\n  timestamp: new Date().toISOString()\n};\n\n// 에러 로그를 외부 시스템에 전송 (선택사항)\n// await $http.request({\n//   method: 'POST',\n//   url: 'http://localhost:3000/api/logs/error',\n//   body: errorLog\n// });\n\nreturn {\n  json: errorResponse\n};"
+      },
+      "id": "error-handling",
+      "name": "에러 처리",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1120, 500]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ $json }}"
+      },
+      "id": "error-response",
+      "name": "에러 응답",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [1340, 500]
+    },
+    {
+      "parameters": {
+        "jsCode": "// 헤드라인 기반 빠른 분류\nconst input = $input.first().json;\nconst headline = input.userHeadline;\n\n// 헤드라인 매핑 규칙\nconst headlineMapping = {\n  '[프로젝트-업무]': {\n    meceCategory: '업무-핵심',\n    paraCategory: 'Projects',\n    priority: '1Q',\n    confidence: 95,\n    reasoning: `사용자 헤드라인 \"${headline}\"에 따른 분류`,\n    destinations: ['notion', 'obsidian', 'localPC'],\n    folderPaths: {\n      obsidian: '001_활성-프로젝트',\n      notion: 'Projects',\n      localPC: '001_활성업무_2024'\n    }\n  },\n  '[프로젝트-개인]': {\n    meceCategory: '개인-필수',\n    paraCategory: 'Projects',\n    priority: '2Q',\n    confidence: 95,\n    reasoning: `사용자 헤드라인 \"${headline}\"에 따른 분류`,\n    destinations: ['obsidian', 'localPC'],\n    folderPaths: {\n      obsidian: '001_활성-프로젝트',\n      notion: 'Projects',\n      localPC: '003_개인업무외'\n    }\n  },\n  '[영역-업무]': {\n    meceCategory: '업무-지원',\n    paraCategory: 'Areas',\n    priority: '2Q',\n    confidence: 95,\n    reasoning: `사용자 헤드라인 \"${headline}\"에 따른 분류`,\n    destinations: ['notion', 'obsidian', 'localPC'],\n    folderPaths: {\n      obsidian: '002_책임-영역/업무영역',\n      notion: 'Areas',\n      localPC: '001_활성업무_2024/영역별_지속업무'\n    }\n  },\n  '[영역-개인]': {\n    meceCategory: '개인-필수',\n    paraCategory: 'Areas',\n    priority: '2Q',\n    confidence: 95,\n    reasoning: `사용자 헤드라인 \"${headline}\"에 따른 분류`,\n    destinations: ['obsidian', 'localPC'],\n    folderPaths: {\n      obsidian: '002_책임-영역/개인영역',\n      notion: 'Areas',\n      localPC: '003_개인업무외'\n    }\n  },\n  '[학습-전문]': {\n    meceCategory: '학습-업무',\n    paraCategory: 'Resources',\n    priority: '2Q',\n    confidence: 95,\n    reasoning: `사용자 헤드라인 \"${headline}\"에 따른 분류`,\n    destinations: ['obsidian', 'notion'],\n    folderPaths: {\n      obsidian: '003_지식-자원/제텔카스텐/영구노트',\n      notion: 'Resources',\n      localPC: null\n    }\n  },\n  '[학습-교양]': {\n    meceCategory: '학습-교양',\n    paraCategory: 'Resources',\n    priority: '4Q',\n    confidence: 95,\n    reasoning: `사용자 헤드라인 \"${headline}\"에 따른 분류`,\n    destinations: ['obsidian'],\n    folderPaths: {\n      obsidian: '003_지식-자원/제텔카스텐/영구노트',\n      notion: null,\n      localPC: null\n    }\n  },\n  '[자료-업무]': {\n    meceCategory: '업무-지원',\n    paraCategory: 'Resources',\n    priority: '3Q',\n    confidence: 95,\n    reasoning: `사용자 헤드라인 \"${headline}\"에 따른 분류`,\n    destinations: ['notion', 'obsidian', 'localPC'],\n    folderPaths: {\n      obsidian: '003_지식-자원/참조자료/001_업무자료',\n      notion: 'Resources',\n      localPC: '002_참조자료'\n    }\n  },\n  '[자료-개인]': {\n    meceCategory: '개인-선택',\n    paraCategory: 'Resources',\n    priority: '4Q',\n    confidence: 95,\n    reasoning: `사용자 헤드라인 \"${headline}\"에 따른 분류`,\n    destinations: ['obsidian'],\n    folderPaths: {\n      obsidian: '003_지식-자원/참조자료/003_개인자료',\n      notion: null,\n      localPC: null\n    }\n  },\n  '[임시]': {\n    meceCategory: 'temporary',\n    paraCategory: 'Inbox',\n    priority: '4Q',\n    confidence: 95,\n    reasoning: `사용자 헤드라인 \"${headline}\"에 따른 분류`,\n    destinations: ['obsidian', 'localPC'],\n    folderPaths: {\n      obsidian: '999_임시작업방',\n      notion: null,\n      localPC: '999_임시작업방'\n    }\n  }\n};\n\nconst mapping = headlineMapping[headline];\nif (mapping) {\n  return {\n    json: {\n      ...mapping,\n      input: input.input,\n      timestamp: new Date().toISOString(),\n      id: `headline_${Date.now()}`,\n      source: 'headline',\n      methods: ['headline_mapping']\n    }\n  };\n} else {\n  throw new Error(`알 수 없는 헤드라인: ${headline}`);\n}"
+      },
+      "id": "headline-processing",
+      "name": "헤드라인 처리",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1120, 100]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "string": [
+            {
+              "value1": "={{ $json.enableAI }}",
+              "operation": "equal",
+              "value2": "true"
+            }
+          ]
+        }
+      },
+      "id": "ai-check",
+      "name": "AI 처리 확인",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [900, 400]
+    },
+    {
+      "parameters": {
+        "jsCode": "// 단계적 자동화 설정\nconst input = $input.first().json;\nconst meceResult = $('MECE 분류').first().json;\n\n// 자동화 단계 결정\nconst automationSteps = {\n  '업무-핵심': {\n    steps: ['mece', 'ai', 'sync'],\n    priority: 'high',\n    timeout: 30000\n  },\n  '업무-지원': {\n    steps: ['mece', 'ai', 'sync'],\n    priority: 'medium',\n    timeout: 20000\n  },\n  '개인-필수': {\n    steps: ['mece', 'ai', 'sync'],\n    priority: 'high',\n    timeout: 25000\n  },\n  '개인-선택': {\n    steps: ['mece', 'ai'],\n    priority: 'low',\n    timeout: 15000\n  },\n  '학습-업무': {\n    steps: ['mece', 'ai', 'sync'],\n    priority: 'medium',\n    timeout: 20000\n  },\n  '학습-교양': {\n    steps: ['mece', 'ai'],\n    priority: 'low',\n    timeout: 15000\n  }\n};\n\nconst category = meceResult.meceCategory;\nconst automationConfig = automationSteps[category] || automationSteps['업무-지원'];\n\n// 사용자 설정과 통합\nconst finalConfig = {\n  ...automationConfig,\n  enableAI: input.enableAI && automationConfig.steps.includes('ai'),\n  enableSync: input.enableSync && automationConfig.steps.includes('sync'),\n  userHeadline: input.userHeadline,\n  processingType: input.processingType,\n  timeout: automationConfig.timeout\n};\n\nreturn {\n  json: {\n    ...input,\n    automationConfig: finalConfig\n  }\n};"
+      },
+      "id": "automation-config",
+      "name": "자동화 설정",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [680, 500]
+    }
+  ],
+  "connections": {
+    "웹훅 트리거": {
+      "main": [
+        [
+          {
+            "node": "입력 검증",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "입력 검증": {
+      "main": [
+        [
+          {
+            "node": "입력 전처리",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "에러 처리",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "입력 전처리": {
+      "main": [
+        [
+          {
+            "node": "헤드라인 확인",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "자동화 설정",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "헤드라인 확인": {
+      "main": [
+        [
+          {
+            "node": "헤드라인 처리",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "MECE 분류",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "헤드라인 처리": {
+      "main": [
+        [
+          {
+            "node": "AI 처리 확인",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "MECE 분류": {
+      "main": [
+        [
+          {
+            "node": "AI 처리 확인",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI 처리 확인": {
+      "main": [
+        [
+          {
+            "node": "AI 처리",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "동기화 확인",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI 처리": {
+      "main": [
+        [
+          {
+            "node": "동기화 확인",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "동기화 확인": {
+      "main": [
+        [
+          {
+            "node": "동기화 실행",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "결과 통합",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "동기화 실행": {
+      "main": [
+        [
+          {
+            "node": "결과 통합",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "결과 통합": {
+      "main": [
+        [
+          {
+            "node": "성공 응답",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "에러 처리": {
+      "main": [
+        [
+          {
+            "node": "에러 응답",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "pinData": {},
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "staticData": null,
+  "tags": [
+    {
+      "id": "hybrid-automation",
+      "name": "하이브리드 자동화"
+    },
+    {
+      "id": "mece-classification",
+      "name": "MECE 분류"
+    },
+    {
+      "id": "ai-processing",
+      "name": "AI 처리"
+    }
+  ],
+  "triggerCount": 1,
+  "updatedAt": "2024-12-26T15:30:00.000Z",
+  "versionId": "1"
+}
